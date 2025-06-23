@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantum AI Predictor</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600;800&display=swap" rel="stylesheet">
+    <link rel="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600;800&display=swap">
     <style>
         :root {
             --primary: #10b981;
@@ -682,8 +682,8 @@
 
         @keyframes glowFloat {
             0% { transform: translateY(0); box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
-            50% { transform: translateY(-8px); box-shadow: 0 0 30px rgba(16, 185, 129, 0.4); }
-            100% { transform: translateY(0); box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+            to50% { transform: translateY(-8px); box-shadow: 0 0 30px rgba(16, 185, 129, 0.4); }
+            to100% { transform: translateY(0); box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
         }
 
         @keyframes spin {
@@ -696,17 +696,17 @@
 
         @keyframes pulse {
             0% { transform: scale(1); }
-            50% { transform: scale(1.15); }
-            100% { transform: scale(1); }
+            to { transform: scale(1.15); }
+            to100% { transform: scale(1); }
         }
 
         @media (max-width: 768px) {
             .container { padding: 16px; }
             header { flex-direction: column; gap: 16px; }
-            .nav-buttons { flex-wrap: wrap; gap: 12px; width: 100%; }
+            .nav-buttons { flex-wrap: column; gap: 12px; width: 100%; }
             .tabs { flex-direction: column; gap: 8px; }
             .tab { padding: 12px; }
-            .period-info { flex-direction: column; gap: 24px; }
+            .period-info { padding: 16px; 32px; gap: 24px; }
             .history-content { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
             .history-card { padding: 20px; }
             .current-result { font-size: 28px; padding: 20px; }
@@ -741,23 +741,23 @@
                 <div class="card prediction-card">
                     <div class="period-info">
                         <div class="period-item">
-                            <span class="period-label">Current Period</span>
+                            <span class="period-label">Current Period:</span>
                             <span class="period-value" id="periodNumber">N/A</span>
                         </div>
-                        <div class="period-item">
-                            <span class="period-label">Time Remaining</span>
+                        <span class="period-item">
+                            <span class="period-label">Time Remaining:</span>
                             <span class="period-value" id="timer">00:00</span>
                         </div>
                     </div>
                     <div class="current-result" id="currentResult">Calculating...</div>
                     <div class="confidence-meter">
-                        <span>Prediction Confidence</span>
+                        <span>Prediction Confidence:</span>
                         <div class="confidence-bar">
                             <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
                         </div>
                     </div>
                     <div class="win-streak-tracker">
-                        <span>Win Streak Progress (1-3 Levels)</span>
+                        <span>Win Streak Progress (1-3 Levels):</span>
                         <div class="streak-bar">
                             <div class="streak-fill" id="streakFill" style="width: 0%"></div>
                         </div>
@@ -807,7 +807,9 @@
                 <div class="history-header">
                     <h2 class="history-title"><i class="fas fa-history"></i> Prediction History</h2>
                 </div>
-                <div class="history-cards" id="historyBody"></div>
+                <div class="history-cards" id="historyBody">
+                    <!-- History cards inserted by JS -->
+                </div>
             </div>
         </div>
 
@@ -828,6 +830,7 @@
     </div>
 
     <script>
+        // DOM Elements
         const periodNumberElement = document.getElementById('periodNumber');
         const timerElement = document.getElementById('timer');
         const currentResultElement = document.getElementById('currentResult');
@@ -840,7 +843,8 @@
         const predictionRationale = document.getElementById('predictionRationale');
         const syncStatusElement = document.getElementById('syncStatus');
 
-        let lastPeriodNumber = null;
+        // State
+        let lastPeriodNumber = '';
         let history = [];
         let currentResult = null;
         let pendingResult = null;
@@ -854,6 +858,7 @@
         let lastResults = [];
         let worker = null;
 
+        // IndexedDB Setup
         let db;
         const dbRequest = indexedDB.open('PredictorDB', 1);
         dbRequest.onupgradeneeded = e => {
@@ -865,6 +870,7 @@
             loadFromDB();
         };
 
+        // Web Worker Setup
         function initWorker() {
             if (window.Worker) {
                 worker = new Worker('worker.js');
@@ -887,6 +893,7 @@
             }
         }
 
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(reg => {
                 console.log('Service Worker registered');
@@ -894,6 +901,7 @@
             }).catch(err => console.error('Service Worker registration failed:', err));
         }
 
+        // Page Visibility API
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
                 worker.postMessage({ type: 'background' });
@@ -1030,7 +1038,7 @@
                 lossStreak = 0;
                 winStreakLevel = 0;
                 streakFill.style.width = '0%';
-            }, 7200000);
+            }, 3000000); // 50 min
         }
 
         function hideBreakPopup() {
@@ -1042,7 +1050,7 @@
             historyBody.innerHTML = history.map(h => `
                 <div class="history-card ${h.status.toLowerCase()}">
                     <div class="history-content">
-                        <span><i class="fas fa-calendar-alt"></i> Period: <span class="value">${h.period || 'N/A'}</span></span>
+                        <span><i class="fas fa-calendar"></i> Period: <span class="value">${h.period || 'N/A'}</span></span>
                         <span><i class="fas fa-chart-line"></i> Prediction: <span class="value">${h.result} (${h.probability}%)</span></span>
                         <span><i class="fas fa-info-circle"></i> Rationale: <span class="value">${h.rationale || 'N/A'}</span></span>
                         ${h.status !== 'Pending' ? `
@@ -1082,18 +1090,19 @@
         }
 
         function updateAnalysis(result) {
-            if (result) {
-                totalBets++;
-                if (result === 'WIN') totalWins++;
-                else if (result === 'LOSS') totalLosses++;
-            }
+            totalBets = history.length;
+            if (result === 'WIN") totalWins++;
+            else if (result === 'LOSS') totalLosses++;
 
-            const winAccuracy = totalBets === 0 ? 0 : ((totalWins / totalBets) * 100).toFixed(2);
+            const winAccuracy = totalBets === 0 ? 0 : ((totalWins / totalBets) * 100).toFixed(2));
             document.getElementById('winAccuracy').textContent = `${winAccuracy}%`;
             document.getElementById('totalWins').textContent = totalWins;
             document.getElementById('totalLosses').textContent = totalLosses;
             document.getElementById('serverStatus').textContent = 'Active';
-            if (winRateFill) winRateFill.style.width = `${winAccuracy}%`;
+
+            if (winRateFill) {
+                winRateFill.style.width = `${winAccuracy}%`;;
+            }
         }
 
         function clearHistory() {
@@ -1108,11 +1117,15 @@
             document.getElementById('totalWins').textContent = '0';
             document.getElementById('totalLosses').textContent = '0';
             document.getElementById('serverStatus').textContent = 'Active';
-            if (winRateFill) winRateFill.style.width = '0%';
-            if (streakFill) streakFill.style.width = '0%';
-            lastResults = [];
+            if (winRateFill) {
+                winRateFill.style.width = '0%';
+            }
+            if (streakFill) {
+                streakFill.style.width = '0%';
+            }
             const tx = db.transaction(['predictions'], 'readwrite');
             tx.objectStore('predictions').clear();
+            lastResults = [];
             worker.postMessage({ type: 'clear' });
             renderHistory();
         }
@@ -1122,7 +1135,9 @@
 
         if (!currentResultElement || !historyBody || !confidenceFill || !streakFill || !predictionRationale || !syncStatusElement) {
             console.error('Missing DOM elements');
-            if (currentResultElement) currentResultElement.textContent = 'Setup Error';
+            if (currentResultElement) {
+                currentResultElement.textContent = 'Setup Error';
+            }
         }
     </script>
 </body>
